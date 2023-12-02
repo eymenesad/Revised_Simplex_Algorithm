@@ -9,6 +9,12 @@ def print_matrix(matrix):
     for row in matrix:
         print(' '.join(map(str, row)))
 
+def add_slack_variables(c, augmented_matrix):
+    slack_variables = [[0] * i + [1] + [0] * (len(augmented_matrix) - i - 1) for i in range(len(augmented_matrix))]
+    c += [0] * len(slack_variables)
+    augmented_matrix = [row + slack for row, slack in zip(augmented_matrix, slack_variables)]
+    return c, augmented_matrix
+
 def initialize_tableau(c, augmented_matrix):
     tableau = [row[:-1] for row in augmented_matrix]
     for i in range(len(tableau)):
@@ -41,6 +47,7 @@ def update_tableau(tableau, entering_variable, leaving_variable):
             tableau[i][j] -= multiplier * pivot_row[j]
 
 def revised_simplex_algorithm(c, augmented_matrix):
+    c, augmented_matrix = add_slack_variables(c, augmented_matrix)
     tableau = initialize_tableau(c, augmented_matrix)
 
     while True:
