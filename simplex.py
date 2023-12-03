@@ -1,11 +1,34 @@
-import numpy as np
-
-
-#inverse of B matrix
+# Inverse of B matrix
 def modify_B(input_matrix):
-    return np.linalg.inv(input_matrix)
+    n = len(input_matrix)
+    identity_matrix = [[0] * n for _ in range(n)]
+    for i in range(n):
+        identity_matrix[i][i] = 1
+
+    # Apply Gaussian elimination to calculate the inverse
+    for i in range(n):
+        pivot = input_matrix[i][i]
+        for j in range(n):
+            input_matrix[i][j] /= pivot
+            identity_matrix[i][j] /= pivot
+        for k in range(n):
+            if k != i:
+                factor = input_matrix[k][i]
+                for j in range(n):
+                    input_matrix[k][j] -= factor * input_matrix[i][j]
+                    identity_matrix[k][j] -= factor * identity_matrix[i][j]
+    print(identity_matrix)
+    return identity_matrix
 
 
+# Vector multiplication: c_B * inverse_B
+def c_B_multiply_Bmatrix(c_B, inverse_B):
+    result = [0] * len(c_B)
+    for i in range(len(c_B)):
+        result[i] = sum(c_B[j] * inverse_B[j][i] for j in range(len(c_B)))
+    return result
+
+# Read matrix from file
 def read_matrix(filename):
     with open(filename, 'r') as file:
         m, n = map(int, file.readline().split())
@@ -124,12 +147,14 @@ if __name__ == '__main__':
         m, n, c, augmented_matrix = read_matrix(f"Assignment3_Data{m}.txt")
         b = [row[-1] for row in augmented_matrix]
         normal_matrix = [row[:-1] for row in augmented_matrix]
+        #print(f"normal matrix {normal_matrix}")
         n = n+m
 
 
         tableau = initialize_tableau(c, normal_matrix)
-  
+        print(f"tableau {tableau}")
         basic_set = [f for f in range(n, n+m)]
+        print(f"basic_set {basic_set}")
         B_matrix = []
         for i in range(m):
             arr=[]
