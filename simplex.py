@@ -1,7 +1,81 @@
-import numpy as np
+def determinant(matrix):
+    size = len(matrix)
+    if size == 1:
+        return matrix[0][0]
+    elif size == 2:
+        return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
+    else:
+        det = 0
+        for i in range(size):
+            cofactor = matrix[0][i] * determinant([row[:i] + row[i+1:] for row in matrix[1:]])
+            det += ((-1) ** i) * cofactor
+        return det
 # Inverse of B matrix
-def modify_B(input_matrix):
-    return np.linalg.inv(input_matrix)
+def modify_B(augmented_matrix):
+    det = determinant(augmented_matrix)
+    if det == 0:
+        print("Unbounded solution")
+        return 0
+    augmented_matrix = [row+[0] for row in augmented_matrix]
+    n = len(augmented_matrix)
+    
+    inverted_matrix = [[0 for x in range(n)] for y in range(n)]
+    for w in range(n):
+        inverted_matrix[w][w] = 1
+    
+    for i in range(n):
+        pivot = augmented_matrix[i][i]
+        if pivot == 0:
+            if i == n - 1:
+                if augmented_matrix[i][-1] != 0:
+                    print("Unbounded solution")
+
+                    #No solution
+                    return 0
+                
+                else:
+                    #Infinite solution
+                    print("Infinite solution")
+                    return 2
+            
+            else:
+
+                for m in range(i + 1, n):
+                    if augmented_matrix[m][i] != 0:
+                        augmented_matrix[i], augmented_matrix[m] = augmented_matrix[m], augmented_matrix[i]
+                        inverted_matrix[i], inverted_matrix[m] = inverted_matrix[m], inverted_matrix[i]
+                        break
+                pivot = augmented_matrix[i][i] # pivot is now non-zero
+        
+        if pivot == 0:
+            continue
+            #return 2       
+
+
+        for j in range(0, n + 1):
+            augmented_matrix[i][j] /= pivot
+            if abs(augmented_matrix[i][j]) < pow(10, -10):
+                    augmented_matrix[i][j] = 0
+            if j != n:
+                inverted_matrix[i][j] /= pivot
+                if abs(inverted_matrix[i][j]) < pow(10, -10):
+                        inverted_matrix[i][j] = 0
+
+        for k in range(n):
+            if k == i:
+                continue
+
+            factor = augmented_matrix[k][i]
+            for j in range(0, n + 1):
+                augmented_matrix[k][j] -= factor * augmented_matrix[i][j] #- augmented_matrix[k][j]
+                if abs(augmented_matrix[k][j]) < pow(10, -10):
+                    augmented_matrix[k][j] = 0
+                if j != n:
+                    inverted_matrix[k][j] -= factor * inverted_matrix[i][j]
+                    if abs(inverted_matrix[k][j]) < pow(10, -10):
+                        inverted_matrix[k][j] = 0
+
+    return inverted_matrix
 
 # Vector multiplication: c_B * inverse_B
 def c_B_multiply_Bmatrix(c_B, inverse_B):
@@ -31,16 +105,18 @@ def initialize_tableau(c, normal_matrix):
   
     return tableau
 def c_B_multiply_Bmatrix(c_B, inverse_B):
+    
     ans = [0 for t in range(m)]
     for i in range(m):
         for j in range(m):
-            ans[i] += c_B[j] * inverse_B[j][i]
+            ans[i] += c_B[j] * inverse_B[i][j]
     return ans
 
 def find_entering_variable():
     new_c = dict()
     inverse_B = modify_B(B_matrix)
-
+    if inverse_B == 0 or inverse_B == 2:
+        return -1
 
     c_B_inverseB = c_B_multiply_Bmatrix(c_B, inverse_B)
 
@@ -56,7 +132,6 @@ def find_entering_variable():
     flag = 0
     for element in new_c:
 
-        print(element, "new_c[element]: ", new_c[element])
         if new_c[element] < 0:
             flag = 1
             break
@@ -68,14 +143,14 @@ def find_entering_variable():
         if new_c[element] < min_val:
             min_val = new_c[element]
             min_index = element
-
-
     return min_index
         
 
 def find_leaving_variable(entering_variable):
 
     inverse_B = modify_B(B_matrix)
+    if inverse_B == 0 or inverse_B == 2:
+        return None
 
     column_star = [0 for i in range(m)]
     for h in range(m):
@@ -108,8 +183,6 @@ def update_tableau(entering_variable, leaving_variable):
 
 
     basic_set[leaving_variable] = entering_variable
-    #basic_set.remove(basic_set[leaving_variable])
-
     
     
     B_matrix.clear()
@@ -129,60 +202,58 @@ def update_tableau(entering_variable, leaving_variable):
 
 
 def revised_simplex_algorithm():
-    sas = 0
     while True:
 
-        print("basic_set: ", basic_set)
         
         entering_variable = find_entering_variable()
         if entering_variable is None:
             break  # Optimal solution reached
+        if entering_variable == -1:
+            print("Unbounded problem.")
+            return
         leaving_variable = find_leaving_variable(entering_variable)
         if leaving_variable is None:
             print("Unbounded problem.")
             return
         update_tableau(entering_variable, leaving_variable)
-        sas += 1
-        if sas == 100:
-            return
+       
 
 
-    print("Hence, optimal solution is arrived with value of variables as :")
+
+    print("Optimal solution is arrived with value of variables as :")
     
-    print("b:", b)
-    print("B_matrix:", B_matrix)
-
+    
     inverse_B = modify_B(B_matrix)
+    if inverse_B == 0 or inverse_B == 2:
+        print("Unbounded solution")
+        return None
     b_star_optimum = [0 for i in range(m)]
     for h in range(m):
         for l in range(m):
             b_star_optimum[h] += b[l] * inverse_B[l][h]
 
-    print("b_star_optimum:", b_star_optimum)
     
     for y in range(m):
         element = basic_set[y]
         if element >= n:
             continue
-        print(f"x{element+1} = {b_star_optimum[y]}")
-
-
-
-
+        print(f"x{element+1} = {round(b_star_optimum[y],6)}")
 
 if __name__ == '__main__':
     for m in range(1, 4):
-        if m != 3:
-            continue
+        
+        
         print(f"Output for case {m}:")
+        #if m == 2:
+        #    print("Unbounded problem.") #Todo, infinite loop, we could not understand
+        #    continue
         m, n, c, augmented_matrix = read_matrix(f"Assignment3_Data{m}.txt")
         mn = m+n
         b = [row[-1] for row in augmented_matrix]
         c = [-x for x in c]
         c = c + [0]*m
         normal_matrix = [row[:-1] for row in augmented_matrix]
-        #print(f"normal matrix {normal_matrix}")
-        #n = n+m
+        
 
 
         tableau = initialize_tableau(c, normal_matrix)
